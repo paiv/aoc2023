@@ -1,0 +1,6 @@
+[project]
+name = "paiv"
+version = "1.0.0"
+description = "Questionable Python extensions"
+license.file = "license"
+authors = [{name="paiv"}]
