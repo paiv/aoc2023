@@ -1,0 +1,289 @@
+<!doctype html>
+<html>
+<head>
+  <title>Day 16: The Floor Will Be Lava</title>
+
+<style media="screen">
+:root {--bg:#fff; --fg:#000; --lb:#b8b8b8;}
+@media (prefers-color-scheme:dark) {:root {--bg:#202124; --fg:#f1f3f3; --lb:#5f6268;}}
+@font-face {font-family:"square"; src:url("../../square.ttf");}
+body, body * {background:var(--bg); color:var(--fg);}
+body {font-family:sans-serif;}
+button {font-family:system-ui;}
+noscript {background-color:magenta; padding:1rem;}
+textarea {white-space:pre;}
+.fx0 {display:flex; margin-top:1em;}
+.m {font-family:square,monospace;}
+.cp {cursor:pointer;}
+.x0 {color:#77808b;}
+.x1 {color:#4774fc;}
+.x2 {color:#ac402b;}
+.x3 {color:#ff512e;}
+#input {width:10rem;height:10rem;}
+#gfx {cursor:default; margin-left:2em;}
+// div {border:1px solid magenta;}
+</style>
+
+</head>
+<body>
+
+<a href="../..">paiv</a> ::
+<a href="https://adventofcode.com/2023/day/16">aoc:day/16</a>
+
+<div class="fx0">
+<div>
+  <textarea id="input" class="m"
+>.|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....
+</textarea>
+</div>
+<div>
+  <button id="pp1">Play</button>
+  <br/>
+  <span id="ans1"></span>
+</div>
+<div id="gfx" class="m">
+</div>
+</div>
+
+<noscript>/noscript</noscript>
+
+<script>
+let _State;
+function parseInput() {
+    let text = document.getElementById('input').value
+    let lines = text.trim().split('\n')
+    return lines
+}
+function buildWorld(board) {
+    let canvas = document.getElementById('gfx')
+    while (canvas.firstChild) {
+        canvas.removeChild(canvas.lastChild)
+    }
+    const W = board[0].length
+    const H = board.length
+    let views = new Array()
+    let hot = new Array()
+    let frame = document.createElement('div')
+    board.forEach((line,y) => {
+        let vrow = new Array()
+        let hrow = new Array()
+        let run = document.createElement('div')
+        line.split('').forEach((c,x) => {
+            let s = document.createElement('span')
+            s.textContent = c
+            if (x === 0 || x === (W-1) || y === 0 || y === (H-1)) {
+                s.classList.add('cp')
+                s.addEventListener('click', () => startBeam([y,x]))
+            }
+            s.classList.add(c === '.' ? 'x0' : 'x1')
+            run.appendChild(s)
+            vrow.push(s)
+            hrow.push({})
+        })
+        frame.appendChild(run)
+        views.push(vrow)
+        hot.push(hrow)
+    })
+    canvas.appendChild(frame)
+    return {views, hot}
+}
+function resetWorld() {
+    const {board, boardSize, beams, views} = _State
+    while (beams.length) {
+        beams.pop()
+    }
+    let hot = new Array()
+    views.forEach((row,y) => {
+        let hrow = new Array()
+        row.forEach((v,x) => {
+            let c = board[y][x]
+            v.textContent = c
+            v.classList.remove('x0', 'x1', 'x2', 'x3')
+            v.classList.add(c === '.' ? 'x0' : 'x1')
+            hrow.push({})
+        })
+        hot.push(hrow)
+    })
+    _State.hot = hot
+    let el1 = document.getElementById('ans1')
+    el1.textContent = 0
+}
+function renderWorld() {
+    const {board, boardSize, beams, views} = _State
+    const dir = {'-1':{0:'^'}, 1:{0:'v'}, 0:{'-1':'<', 1:'>'}}
+    beams.forEach((beam,ib) => {
+        let [p, d] = beam
+        let [y,x] = p
+        let v = views[y][x]
+        v.textContent = dir[d[0]][d[1]]
+        v.classList.remove('x0', 'x1', 'x2')
+        v.classList.add('x3')
+    })
+}
+function updateWorld() {
+    const {board, boardSize, beams, hot, views} = _State
+    let purge = new Array()
+    let start = new Array()
+    const dir = {'-1':{0:'^'}, 1:{0:'v'}, 0:{'-1':'<', 1:'>'}}
+    beams.forEach((beam,ib) => {
+        let [p, d] = beam
+        let [y,x] = p
+        hot[y][x][dir[d[0]][d[1]]] = 1
+        let v = views[y][x]
+        v.textContent = '#'
+        v.classList.remove('x0', 'x1', 'x2', 'x3')
+        v.classList.add('x2')
+        switch (board[y][x]) {
+            case '.': {
+                beam[0] = [y+d[0], x+d[1]]
+                break
+            }
+            case '/': {
+                let r = [-d[1], -d[0]]
+                let q = [y+r[0], x+r[1]]
+                beam[0] = q
+                beam[1] = r
+                break
+            }
+            case '\\': {
+                let r = [d[1], d[0]]
+                let q = [y+r[0], x+r[1]]
+                beam[0] = q
+                beam[1] = r
+                break
+            }
+            case '-': {
+                if (d[0]) {
+                    let r = [0, d[0]]
+                    beam[0] = [y+r[0], x+r[1]]
+                    beam[1] = r
+                    r = [0, -d[0]]
+                    let q = [y+r[0], x+r[1]]
+                    beams.push([q, r])
+                }
+                else {
+                    beam[0] = [y+d[0], x+d[1]]
+                }
+                break
+            }
+            case '|': {
+                if (d[1]) {
+                    let r = [d[1], 0]
+                    beam[0] = [y+r[0], x+r[1]]
+                    beam[1] = r
+                    r = [-d[1], 0]
+                    let q = [y+r[0], x+r[1]]
+                    beams.push([q, r])
+                }
+                else {
+                    beam[0] = [y+d[0], x+d[1]]
+                }
+                break
+            }
+        }
+    })
+    beams.forEach((beam,ib) => {
+        let [p, d] = beam
+        let [y,x] = p
+        if (!(y >= 0 && y < boardSize.height && x >= 0 && x < boardSize.width)) {
+            purge.push(ib)
+        }
+        else {
+            let c = dir[d[0]][d[1]]
+            if (hot[y][x][c]) {
+                purge.push(ib)
+            }
+        }
+    })
+    purge.reverse()
+    purge.forEach(i => {
+        beams[i] = beams[beams.length-1]
+        beams.length -= 1
+    })
+    beams.forEach((beam,ib) => {
+        let [p, d] = beam
+        let [y,x] = p
+        let v = views[y][x]
+        v.textContent = dir[d[0]][d[1]]
+        v.classList.remove('x0', 'x1', 'x2', 'x3')
+        v.classList.add('x3')
+    })
+    const chs = ['>','<','v','^']
+    let ans = hot.reduce((a,r) => a+r.reduce((a,xs) => a+chs.reduce((a,c) => a|(xs[c]||0), 0), 0), 0)
+    let el1 = document.getElementById('ans1')
+    el1.textContent = ans
+    startAnimations()
+}
+function startAnimations() {
+    const {beams, animId, fps} = _State
+    let enable = beams.length > 0
+    if (enable && !animId) {
+        _State.animId = setInterval(updateWorld, 1000/fps)
+    }
+    else if (!enable && animId) {
+        _State.animId = undefined
+        clearInterval(animId)
+    }
+}
+function stopAnimations() {
+    const {animId} = _State || {}
+    if (animId) {
+        _State.animId = undefined
+        clearInterval(animId)
+    }
+}
+function startBeam(p) {
+    const {boardSize, beams} = _State
+    resetWorld()
+    let d = [0,0]
+    if (p[1] === 0) {
+        d[1] = 1
+    }
+    else if (p[1] === boardSize.width-1) {
+        d[1] = -1
+    }
+    else if (p[0] === 0) {
+        d[0] = 1
+    }
+    else if (p[0] === boardSize.height-1) {
+        d[0] = -1
+    }
+    beams.push([p,d])
+    renderWorld()
+    startAnimations()
+}
+function playPart1() {
+    stopAnimations()
+    if (_State) {
+        resetWorld()
+    }
+    let board = parseInput()
+    let {views,hot} = buildWorld(board)
+    let state = {
+        fps:4,
+        board,
+        boardSize: {width:board[0].length, height:board.length},
+        views,
+        hot,
+        beams:[],
+    }
+    _State = state
+    setTimeout(() => startBeam([9,4], [-1,0]), 10000)
+}
+function setup() {
+    let part1 = document.getElementById('pp1')
+    part1.addEventListener('click', playPart1)
+}
+window.addEventListener('DOMContentLoaded', setup)
+</script>
+</body>
+</html>
