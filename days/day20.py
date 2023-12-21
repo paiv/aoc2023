@@ -101,7 +101,6 @@ def part2(data, probe='rx'):
         else:
             fx.extend(qs)
             
-    stat = dict()
     wire = deque()
     def send(d, s, v):
         wire.append((d,s,v))
@@ -111,7 +110,6 @@ def part2(data, probe='rx'):
             case '%':
                 o = flops[d]
                 if not v:
-                    stat[d] = v
                     v = 0 if o else 1
                     flops[d] = v
                     for c in chi[d]:
