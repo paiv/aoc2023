@@ -4,7 +4,7 @@ import sys
 import time
 import tomllib
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -13,13 +13,14 @@ def trace(*args, **kwargs):
 
 
 def prep(day=None, year=None):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if year is None:
         year = now.year
 
     if day is None:
-        day = (now - datetime(year, 12, 1)).days + 1
+        dec1 = datetime(year, 12, 1, tzinfo=timezone.utc)
+        day = (now - dec1).days + 1
     else:
         day = int(day)
 
@@ -39,7 +40,7 @@ def prep(day=None, year=None):
         if not overwrite:
             return
 
-    that_moment = datetime(year, 12, day, 5)
+    that_moment = datetime(year, 12, day, 5, tzinfo=timezone.utc)
     sleep_until(that_moment)
 
     problem = wget(dayurl, headers=headers)
@@ -54,7 +55,7 @@ def sleep_until(that_moment):
     sig = signal.signal(signal.SIGINT, restore_cursor)
 
     subsec = 2
-    while (dt := that_moment - datetime.utcnow()) > timedelta():
+    while (dt := that_moment - datetime.now(timezone.utc)) > timedelta():
         dt = timedelta(seconds=round(dt.total_seconds()))
         trace(f'T-{dt} ' , end='')
         time.sleep(1/subsec)
