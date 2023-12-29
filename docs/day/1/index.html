@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <title>Day 1: Trebuchet?!</title>
+
+<style media="screen">
+:root {--bg:#fff; --fg:#000; --lb:#b8b8b8;}
+@media (prefers-color-scheme:dark) {:root {--bg:#202124; --fg:#f1f3f3; --lb:#5f6268;}}
+body, body * {background:var(--bg); color:var(--fg);}
+body {font-family:sans-serif;}
+button {font-family:system-ui;}
+noscript {background-color:magenta; padding:1rem;}
+textarea {white-space:pre;}
+.fx0 {display:flex; margin-top:1em;}
+.m {font-family:square,monospace;}
+#input {width:10rem;height:10rem;}
+#gfx {margin-left:2em;}
+</style>
+
+</head>
+<body>
+
+<a href="../..">paiv</a> ::
+<a href="https://adventofcode.com/2023/day/1">aoc:day/1</a>
+
+<div class="fx0">
+<div>
+  <textarea id="input" class="m"
+>two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen
+</textarea>
+</div>
+<div>
+  <button id="pp2">Play</button>
+  <br/>
+  <span id="ans"></span>
+</div>
+<div id="gfx" class="m">
+</div>
+</div>
+
+<noscript>/noscript</noscript>
+
+<script>
+function parseInput() {
+    let text = document.getElementById('input').value
+    let lines = text.trim().split('\n')
+    return lines
+}
+function playPart2() {
+    let canvas = document.getElementById('gfx')
+    while (canvas.firstChild) {
+        canvas.removeChild(canvas.lastChild)
+    }
+    let board = parseInput()
+    let pane = document.createElement('div')
+    const rx = /(?=([1-9]|one|two|three|four|five|six|seven|eight|nine))/g
+    const palette = ['rgba(255,0,0,65%)', 'rgba(0,255,0,65%)', 'rgba(0,50,255,65%)', 'rgba(255,0,255,65%)', 'rgba(255,255,0,65%)']
+    board.forEach(line => {
+        let row = document.createElement('div')
+        let hi = document.createElement('div')
+        let text = document.createElement('span')
+        text.textContent = line
+        row.appendChild(text)
+        pane.appendChild(row)
+        row.appendChild(hi)
+        row.style = 'position:relative;'
+        hi.style = 'position:absolute;top:0;filter:opacity(0.5);'
+        let ms = [...line.matchAll(rx)].map(a => [a.index, a[1]])
+        let t = 0
+        for (let m of ms) {
+            let l = document.createElement('span')
+            l.setAttribute('title', m[1])
+            l.textContent = '\xa0'.repeat(m[1].length)
+            let c = palette[t++ % palette.length]
+            l.style = 'background-color:' + c + ';' + 'position:absolute;left:' + m[0] + 'ch;'
+            hi.appendChild(l)
+        }
+    })
+    canvas.appendChild(pane)
+}
+function setup() {
+    let part2 = document.getElementById('pp2')
+    part2.addEventListener('click', playPart2)
+}
+window.addEventListener('DOMContentLoaded', setup)
+</script>
+</body>
+</html>
